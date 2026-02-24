@@ -16,10 +16,10 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
   const statusColor = {
-    planning: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    active: 'bg-green-500/10 text-green-400 border-green-500/20',
-    paused: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-    completed: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+    PLANNING: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    ACTIVE: 'bg-green-500/10 text-green-400 border-green-500/20',
+    PAUSED: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+    COMPLETED: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
   }[project.status]
 
   return (

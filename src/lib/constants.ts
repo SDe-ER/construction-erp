@@ -9,11 +9,10 @@ export const USER_ROLES = {
 
 // Project Status
 export const PROJECT_STATUS = {
-  PLANNING: 'planning',
-  IN_PROGRESS: 'in_progress',
-  ON_HOLD: 'on_hold',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
+  PLANNING: 'PLANNING',
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  COMPLETED: 'COMPLETED',
 } as const
 
 // Equipment Status
@@ -49,16 +48,18 @@ export const ATTENDANCE_STATUS = {
 
 // Arabic Labels
 export const STATUS_LABELS: Record<string, string> = {
+  PLANNING: 'التخطيط',
+  ACTIVE: 'نشط',
+  PAUSED: 'مؤجل',
+  COMPLETED: 'مكتمل',
   planning: 'التخطيط',
-  in_progress: 'قيد التنفيذ',
-  on_hold: 'مؤجل',
+  active: 'نشط',
+  paused: 'مؤجل',
   completed: 'مكتمل',
-  cancelled: 'ملغي',
   available: 'متاح',
   in_use: 'قيد الاستخدام',
   maintenance: 'صيانة',
   out_of_service: 'خارج الخدمة',
-  active: 'نشط',
   on_leave: 'في إجازة',
   terminated: 'منتهي خدمته',
   pending: 'معلق',
