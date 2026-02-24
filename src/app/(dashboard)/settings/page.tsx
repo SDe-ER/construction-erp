@@ -7,6 +7,7 @@ import {
   Building2,
   Palette,
   DollarSign,
+  Layers,
   Loader2,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { CompanySection } from './sections/CompanySection'
 import { BrandingSection } from './sections/BrandingSection'
 import { FinanceSection } from './sections/FinanceSection'
+import { ProjectSettings } from '@/components/settings/ProjectSettings'
 
 // Sidebar navigation items
 const SECTIONS = [
@@ -37,6 +39,13 @@ const SECTIONS = [
     icon: DollarSign,
     color: 'bg-green-500',
     description: 'العملة والضرائب والصيغ',
+  },
+  {
+    id: 'projects',
+    label: 'إدارة المشاريع',
+    icon: Layers,
+    color: 'bg-orange-500',
+    description: 'حالات المهام والأولويات والقوالب',
   },
 ]
 
@@ -198,6 +207,8 @@ export default function SettingsPage() {
                 saving={saving}
               />
             )}
+
+            {section === 'projects' && <ProjectSettings />}
           </>
         )}
       </main>
