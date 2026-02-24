@@ -1,98 +1,206 @@
 'use client'
 
-import { PageHeader } from '@/components/shared/PageHeader'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Settings, User, Bell, Lock, Database } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import {
+  Building2,
+  Palette,
+  DollarSign,
+  Loader2,
+} from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { CompanySection } from './sections/CompanySection'
+import { BrandingSection } from './sections/BrandingSection'
+import { FinanceSection } from './sections/FinanceSection'
+
+// Sidebar navigation items
+const SECTIONS = [
+  {
+    id: 'company',
+    label: 'بيانات الشركة',
+    icon: Building2,
+    color: 'bg-blue-500',
+    description: 'المعلومات الأساسية للشركة',
+  },
+  {
+    id: 'branding',
+    label: 'الهوية البصرية',
+    icon: Palette,
+    color: 'bg-purple-500',
+    description: 'الألوان والخطوط والمظهر',
+  },
+  {
+    id: 'finance',
+    label: 'المالية',
+    icon: DollarSign,
+    color: 'bg-green-500',
+    description: 'العملة والضرائب والصيغ',
+  },
+]
 
 export default function SettingsPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="الإعدادات"
-        description="إعدادات النظام والحساب"
-      />
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const section = searchParams.get('section') || 'company'
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Profile Settings */}
-        <Card className="bg-slate-800 border-slate-700 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <User className="h-5 w-5" />
-              إعدادات الملف الشخصي
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-slate-300">الاسم</Label>
-                <Input
-                  defaultValue="المدير العام"
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  // Settings state for each section
+  const [companySettings, setCompanySettings] = useState<any>({})
+  const [brandingSettings, setBrandingSettings] = useState<any>({})
+  const [financeSettings, setFinanceSettings] = useState<any>({})
+
+  // Fetch settings for a section
+  const fetchSettings = async (module: string) => {
+    try {
+      const res = await fetch(`/api/settings?module=${module}`)
+      const data = await res.json()
+      if (data.success) {
+        const parsed: any = {}
+        for (const [key, config] of Object.entries(data.configs)) {
+          parsed[key] = (config as any).value
+        }
+        return parsed
+      }
+      return {}
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+      return {}
+    }
+  }
+
+  // Load settings for current section
+  useEffect(() => {
+    const loadSettings = async () => {
+      setLoading(true)
+      const settings = await fetchSettings(section)
+      if (section === 'company') setCompanySettings(settings)
+      else if (section === 'branding') setBrandingSettings(settings)
+      else if (section === 'finance') setFinanceSettings(settings)
+      setLoading(false)
+    }
+    loadSettings()
+  }, [section])
+
+  // Save settings for a section
+  const saveSettings = async (module: string, settings: Record<string, any>) => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: Object.entries(settings).map(([key, value]) => ({
+            module,
+            key,
+            value,
+          })),
+        }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        toast.success('تم حفظ الإعدادات بنجاح')
+      } else {
+        toast.error(data.error || 'فشل حفظ الإعدادات')
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      toast.error('فشل حفظ الإعدادات')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const currentSection = SECTIONS.find((s) => s.id === section) || SECTIONS[0]
+  const CurrentIcon = currentSection.icon
+
+  return (
+    <div className="flex h-[calc(100vh-120px)] gap-6">
+      {/* Sidebar Navigation */}
+      <aside className="w-60 flex-shrink-0">
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 space-y-2">
+          <h2 className="text-lg font-bold text-white mb-4 px-2">الإعدادات</h2>
+
+          {SECTIONS.map((item) => {
+            const ItemIcon = item.icon
+            const isActive = section === item.id
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => router.push(`?section=${item.id}`)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                  isActive
+                    ? 'bg-slate-700 text-white shadow-sm'
+                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                )}
+              >
+                <div className={cn('h-2 w-2 rounded-full', item.color)} />
+                <ItemIcon className="h-4 w-4" />
+                <span className="flex-1 text-right">{item.label}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Info Card */}
+        <Card className="mt-4 bg-slate-800/50 border-slate-700">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', currentSection.color)}>
+                <CurrentIcon className="h-4 w-4 text-white" />
               </div>
-              <div className="space-y-2">
-                <Label className="text-slate-300">البريد الإلكتروني</Label>
-                <Input
-                  type="email"
-                  defaultValue="admin@example.com"
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white">{currentSection.label}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{currentSection.description}</p>
               </div>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              حفظ التغييرات
-            </Button>
           </CardContent>
         </Card>
+      </aside>
 
-        {/* Quick Actions */}
-        <div className="space-y-4">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                كلمة المرور
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-slate-300">كلمة المرور الحالية</Label>
-                <Input
-                  type="password"
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-300">كلمة المرور الجديدة</Label>
-                <Input
-                  type="password"
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
-              </div>
-              <Button variant="outline" className="w-full border-slate-600">
-                تحديث كلمة المرور
-              </Button>
-            </CardContent>
-          </Card>
+      {/* Content Area */}
+      <main className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        ) : (
+          <>
+            {section === 'company' && (
+              <CompanySection
+                settings={companySettings}
+                onChange={setCompanySettings}
+                onSave={() => saveSettings('company', companySettings)}
+                saving={saving}
+              />
+            )}
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                الإشعارات
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-400">
-                إعدادات الإشعارات والتنبيهات
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            {section === 'branding' && (
+              <BrandingSection
+                settings={brandingSettings}
+                onChange={setBrandingSettings}
+                onSave={() => saveSettings('branding', brandingSettings)}
+                saving={saving}
+              />
+            )}
+
+            {section === 'finance' && (
+              <FinanceSection
+                settings={financeSettings}
+                onChange={setFinanceSettings}
+                onSave={() => saveSettings('finance', financeSettings)}
+                saving={saving}
+              />
+            )}
+          </>
+        )}
+      </main>
     </div>
   )
 }

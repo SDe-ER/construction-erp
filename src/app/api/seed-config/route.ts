@@ -144,6 +144,152 @@ const DEFAULT_CONFIGS = [
     type: 'JSON',
     label: 'من يستطيع إدارة المخاطر'
   },
+
+  // MODULE: "company"
+  {
+    module: 'company',
+    key: 'company_name',
+    value: 'شركة المقاولات الحديثة',
+    type: 'STRING',
+    label: 'اسم الشركة'
+  },
+  {
+    module: 'company',
+    key: 'logo_url',
+    value: '',
+    type: 'STRING',
+    label: 'رابط الشعار'
+  },
+  {
+    module: 'company',
+    key: 'tax_number',
+    value: '',
+    type: 'STRING',
+    label: 'الرقم الضريبي'
+  },
+  {
+    module: 'company',
+    key: 'commercial_reg',
+    value: '',
+    type: 'STRING',
+    label: 'رقم السجل التجاري'
+  },
+  {
+    module: 'company',
+    key: 'phone',
+    value: '',
+    type: 'STRING',
+    label: 'رقم الهاتف'
+  },
+  {
+    module: 'company',
+    key: 'email',
+    value: '',
+    type: 'STRING',
+    label: 'البريد الإلكتروني'
+  },
+  {
+    module: 'company',
+    key: 'address',
+    value: '',
+    type: 'STRING',
+    label: 'العنوان'
+  },
+  {
+    module: 'company',
+    key: 'website',
+    value: '',
+    type: 'STRING',
+    label: 'الموقع الإلكتروني'
+  },
+  {
+    module: 'company',
+    key: 'po_box',
+    value: '',
+    type: 'STRING',
+    label: 'صندوق البريد'
+  },
+
+  // MODULE: "branding"
+  {
+    module: 'branding',
+    key: 'primary_color',
+    value: '#3b82f6',
+    type: 'COLOR',
+    label: 'اللون الأساسي'
+  },
+  {
+    module: 'branding',
+    key: 'secondary_color',
+    value: '#8b5cf6',
+    type: 'COLOR',
+    label: 'اللون الثانوي'
+  },
+  {
+    module: 'branding',
+    key: 'font_family',
+    value: 'Cairo',
+    type: 'STRING',
+    label: 'خط التطبيق'
+  },
+  {
+    module: 'branding',
+    key: 'base_font_size',
+    value: '14',
+    type: 'NUMBER',
+    label: 'حجم الخط الأساسي'
+  },
+  {
+    module: 'branding',
+    key: 'color_mode',
+    value: 'dark',
+    type: 'STRING',
+    label: 'وضع الألوان: dark|light|auto'
+  },
+
+  // MODULE: "finance"
+  {
+    module: 'finance',
+    key: 'currency',
+    value: 'SAR',
+    type: 'STRING',
+    label: 'العملة الافتراضية'
+  },
+  {
+    module: 'finance',
+    key: 'vat_rate',
+    value: '15',
+    type: 'NUMBER',
+    label: 'نسبة الضريبة المضافة (%)'
+  },
+  {
+    module: 'finance',
+    key: 'number_format',
+    value: '1,000',
+    type: 'STRING',
+    label: 'صيغة الأرقام'
+  },
+  {
+    module: 'finance',
+    key: 'date_format',
+    value: 'DD/MM/YYYY',
+    type: 'STRING',
+    label: 'صيغة التاريخ'
+  },
+  {
+    module: 'finance',
+    key: 'timezone',
+    value: 'Asia/Riyadh',
+    type: 'STRING',
+    label: 'المنطقة الزمنية'
+  },
+  {
+    module: 'finance',
+    key: 'last_invoice_number',
+    value: '1000',
+    type: 'NUMBER',
+    label: 'رقم آخر فاتورة'
+  },
 ] as const
 
 export async function POST(request: Request) {
