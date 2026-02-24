@@ -1,0 +1,901 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum WorkerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum PricingType {
+  HOURLY
+  METER
+}
+
+enum OwnerType {
+  COMPANY
+  BROTHER
+  RENTAL
+}
+
+enum EquipmentStatus {
+  WORKING
+  MAINTENANCE
+  IDLE
+  RENTED
+}
+
+enum MaintenanceType {
+  ROUTINE
+  EMERGENCY
+  PERIODIC
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CHECK
+}
+
+enum RevenueType {
+  METER
+  HOURLY
+  TRUCK
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  LEAVE
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
+
+// ═══ NEW ENUMS ═══
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  ON_HOLD
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum PhaseStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DELAYED
+  ON_HOLD
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATED
+  CLOSED
+  ACCEPTED
+}
+
+enum DependencyType {
+  FINISH_TO_START
+  START_TO_START
+  FINISH_TO_FINISH
+  START_TO_FINISH
+}
+
+enum ResourceType {
+  WORKER
+  EQUIPMENT
+  EXTERNAL
+}
+
+enum DocCategory {
+  CONTRACT
+  DRAWING
+  PHOTO
+  REPORT
+  PERMIT
+  INVOICE
+  OTHER
+}
+
+enum ConfigType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+  COLOR
+  LIST
+}
+
+enum NotificationRule {
+  IMMEDIATE
+  DAILY_DIGEST
+  WEEKLY
+  DISABLED
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+// 1. User Model
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  revenues       Revenue[]
+  salaries       Salary[]
+  overtimePays   OvertimePay[]
+  attendances    Attendance[]
+  quotations     Quotation[]
+
+  @@map("users")
+}
+
+// 2. Worker Model
+model Worker {
+  id                  String        @id @default(uuid())
+  nameAr              String
+  nameEn              String?
+  phone               String
+  nationality         String?
+  birthDate           DateTime?
+  joinDate            DateTime
+  baseSalary          Float
+  foodAllowance       Float         @default(0)
+  residenceNumber     String?
+  residenceExpiry     DateTime?
+  idNumber            String        @unique
+  idExpiry            DateTime?
+  licenseNumber       String?
+  licenseExpiry       DateTime?
+  residenceImg        String?
+  idImg               String?
+  profileImg          String?
+  status              WorkerStatus  @default(ACTIVE)
+  rating              Float         @default(0)
+  notes               String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Relations
+  projectWorkers      ProjectWorker[]
+  attendanceRecords   Attendance[]
+  salaries            Salary[]
+  overtimePays        OvertimePay[]
+  housings            HousingWorker[]
+  taskAssignments     Task[]           @relation("TaskAssignee")
+  resourceAllocations ResourceAllocation[]
+
+  @@map("workers")
+}
+
+// 3. Project Model
+model Project {
+  id              String        @id @default(uuid())
+  name            String
+  code            String        @unique
+  clientId        String?
+  startDate       DateTime
+  endDate         DateTime?
+  status          ProjectStatus @default(PLANNING)
+  pricingType     PricingType
+  description     String?
+  budget          Float?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  client            Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectWorkers    ProjectWorker[]
+  projectEquipment  ProjectEquipment[]
+  expenses          Expense[]
+  revenues          Revenue[]
+  quotations        Quotation[]      @relation("ProjectQuotations")
+  spareParts        SparePart[]
+
+  // New Relations
+  phases            ProjectPhase[]
+  tasks             Task[]
+  milestones        ProjectMilestone[]
+  risks             Risk[]
+  decisions         Decision[]
+  documents         ProjectDocument[]
+  activities        ActivityLog[]
+  resourceAllocations ResourceAllocation[]
+  template          ProjectTemplate?  @relation("ProjectFromTemplate", fields: [templateId], references: [id], onDelete: SetNull)
+  templateId        String?
+
+  @@map("projects")
+}
+
+// 4. ProjectWorker Model (Junction)
+model ProjectWorker {
+  id          String    @id @default(uuid())
+  projectId   String
+  workerId    String
+  startDate   DateTime
+  endDate     DateTime?
+  dailyRate   Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worker    Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, workerId])
+  @@map("project_workers")
+}
+
+// 5. ProjectEquipment Model (Junction)
+model ProjectEquipment {
+  id           String    @id @default(uuid())
+  projectId    String
+  equipmentId  String
+  startDate    DateTime
+  endDate      DateTime?
+  hourlyRate   Float
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  equipment  Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, equipmentId])
+  @@map("project_equipment")
+}
+
+// 6. Equipment Model
+model Equipment {
+  id                String          @id @default(uuid())
+  name              String
+  type              String
+  model             String?
+  serialNumber      String?         @unique
+  manufactureYear   Int?
+  ownerId           String?
+  ownerType         OwnerType
+  status            EquipmentStatus @default(IDLE)
+  currentMeter      Float           @default(0)
+  purchasePrice     Float?
+  image             String?
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  owner            EquipmentOwner?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  projectEquipment ProjectEquipment[]
+  maintenance      Maintenance[]
+  expenses         Expense[]
+  spareParts       SparePart[]
+  resourceAllocations ResourceAllocation[]
+
+  @@map("equipment")
+}
+
+// 7. EquipmentOwner Model
+model EquipmentOwner {
+  id        String     @id @default(uuid())
+  name      String
+  phone     String?
+  type      OwnerType
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  equipment Equipment[]
+
+  @@map("equipment_owners")
+}
+
+// 8. Maintenance Model
+model Maintenance {
+  id                 String           @id @default(uuid())
+  equipmentId        String
+  type               MaintenanceType
+  date               DateTime
+  meterAtService     Float
+  nextServiceMeter   Float?
+  nextServiceDate    DateTime?
+  cost               Float
+  technicianName     String?
+  description        String?
+  filterOil          Boolean          @default(false)
+  filterFuel         Boolean          @default(false)
+  filterAir          Boolean          @default(false)
+  filterHydraulic    Boolean          @default(false)
+  filterOther        String?
+  receipt            String?
+  createdAt          DateTime         @default(now())
+
+  // Relations
+  equipment  Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance")
+}
+
+// 9. SparePart Model
+model SparePart {
+  id              String    @id @default(uuid())
+  name            String
+  partNumber      String?
+  quantity        Float
+  unit            String
+  minQuantity     Float
+  purchasePrice   Float
+  totalCost       Float
+  equipmentId     String?
+  projectId       String?
+  purchaseDate    DateTime
+  supplier        String?
+  receiptImg      String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  equipment  Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  project    Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("spare_parts")
+}
+
+// 10. Expense Model
+model Expense {
+  id              String          @id @default(uuid())
+  projectId       String?
+  equipmentId     String?
+  categoryId      String
+  amount          Float
+  taxAmount       Float           @default(0)
+  taxIncluded     Boolean         @default(false)
+  totalAmount     Float
+  date            DateTime
+  description     String?
+  receiptImg      String?
+  paymentMethod   PaymentMethod
+  createdAt       DateTime        @default(now())
+
+  // Relations
+  project   Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  equipment Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  category  ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@map("expenses")
+}
+
+// 11. ExpenseCategory Model
+model ExpenseCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  type      String
+  createdAt DateTime @default(now())
+
+  // Relations
+  expenses  Expense[]
+
+  @@map("expense_categories")
+}
+
+// 12. Revenue Model
+model Revenue {
+  id              String      @id @default(uuid())
+  projectId       String
+  clientId        String?
+  invoiceNumber   String      @unique
+  amount          Float
+  taxAmount       Float       @default(0)
+  totalAmount     Float
+  type            RevenueType
+  meters          Float?
+  hours           Float?
+  truckCount      Int?
+  truckSize       String?
+  unitPrice       Float
+  date            DateTime
+  isPaid          Boolean     @default(false)
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime    @default(now())
+  createdById     String
+
+  // Relations
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client     Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdBy  User    @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@map("revenues")
+}
+
+// 13. Salary Model
+model Salary {
+  id                String    @id @default(uuid())
+  workerId          String
+  month             Int
+  year              Int
+  baseSalary        Float
+  foodAllowance     Float     @default(0)
+  overtimeTotal     Float     @default(0)
+  deductions        Float     @default(0)
+  absenceDays       Int       @default(0)
+  absenceDeduction  Float     @default(0)
+  netSalary         Float
+  isPaid            Boolean   @default(false)
+  paidAt            DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  createdById       String
+
+  // Relations
+  worker     Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  createdBy  User   @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([workerId, month, year])
+  @@map("salaries")
+}
+
+// 14. OvertimePay Model
+model OvertimePay {
+  id          String    @id @default(uuid())
+  workerId    String
+  amount      Float
+  date        DateTime
+  projectId   String?
+  description String?
+  isPaid      Boolean   @default(false)
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+  createdById String
+
+  // Relations
+  worker     Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  createdBy  User   @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@map("overtime_pays")
+}
+
+// 15. Attendance Model
+model Attendance {
+  id          String          @id @default(uuid())
+  workerId    String
+  date        DateTime
+  status      AttendanceStatus
+  projectId   String?
+  notes       String?
+  createdAt   DateTime        @default(now())
+  createdById String
+
+  // Relations
+  worker     Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  createdBy  User   @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([workerId, date])
+  @@map("attendance")
+}
+
+// 16. Quotation Model
+model Quotation {
+  id                    String          @id @default(uuid())
+  clientId              String
+  projectName           String
+  items                 Json            // Array of quotation items
+  estimatedCost         Float
+  sellingPrice          Float
+  profitMargin          Float
+  profitAmount          Float
+  status                QuotationStatus @default(DRAFT)
+  validUntil            DateTime
+  notes                 String?
+  convertedToProjectId  String?         @unique
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  createdById           String
+
+  // Relations
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  project    Project? @relation("ProjectQuotations", fields: [convertedToProjectId], references: [id], onDelete: SetNull)
+  createdBy  User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@map("quotations")
+}
+
+// 17. Client Model
+model Client {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  company   String?
+  address   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  projects   Project[]
+  revenues   Revenue[]
+  quotations Quotation[]
+
+  @@map("clients")
+}
+
+// 18. Housing Model
+model Housing {
+  id              String    @id @default(uuid())
+  location        String
+  monthlyRent     Float
+  electricityAvg  Float?
+  waterAvg        Float?
+  workerIds       Json      // Array of worker IDs
+  startDate       DateTime
+  endDate         DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  workers  HousingWorker[]
+
+  @@map("housing")
+}
+
+// Housing-Worker Relation (Many-to-Many)
+model HousingWorker {
+  id         String   @id @default(uuid())
+  housingId  String
+  workerId   String
+  startDate  DateTime
+  endDate    DateTime?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  housing  Housing @relation(fields: [housingId], references: [id], onDelete: Cascade)
+  worker   Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([housingId, workerId])
+  @@map("housing_workers")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NEW MODELS - Flexible System Core
+// ═══════════════════════════════════════════════════════════════════
+
+// MODEL 1: SystemConfig — قلب المرونة
+model SystemConfig {
+  id          String          @id @default(cuid())
+  module      String          // "general"|"projects"|"tasks"|"notifications"|"ui"|"permissions"
+  key         String          // اسم الإعداد مثل "task_statuses" أو "max_file_size"
+  value       String          // القيمة (JSON.stringify إذا كانت كائن)
+  type        ConfigType      @default(STRING)
+  label       String          // اسم الإعداد للعرض بالعربي
+  description String?         // شرح الإعداد
+  isPublic    Boolean         @default(false) // يمكن قراءته من Frontend بدون Auth
+  updatedBy   String?
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([module, key])
+  @@map("system_configs")
+}
+
+// MODEL 2: ProjectTemplate — قوالب المشاريع
+model ProjectTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String   @default("🏗️")
+  color       String   @default("#14b8a6")
+  phases      Json     // [{name, duration, tasks:[{title,priority}]}]
+  isActive    Boolean  @default(true)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  projects    Project[] @relation("ProjectFromTemplate")
+
+  @@map("project_templates")
+}
+
+// MODEL 3: ProjectPhase
+model ProjectPhase {
+  id          String      @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  order       Int         @default(0)
+  color       String      @default("#14b8a6")
+  icon        String      @default("📋")
+  status      PhaseStatus @default(PENDING)
+  startDate   DateTime?
+  endDate     DateTime?
+  progressPct Float       @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@map("project_phases")
+}
+
+// MODEL 4: Task
+model Task {
+  id            String       @id @default(cuid())
+  projectId     String
+  phaseId       String?
+  parentTaskId  String?
+  assignedToId  String?     // Worker.id
+  title         String
+  description   String?
+  status        TaskStatus  @default(TODO)
+  priority      TaskPriority @default(MEDIUM)
+  dueDate       DateTime?
+  startDate     DateTime?
+  estimatedHours Float?
+  actualHours   Float       @default(0)
+  progressPct   Float       @default(0)
+  order         Int         @default(0)
+  tags          String[]    @default([])
+  customFields  Json?       // حقول مخصصة من الإعدادات
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase        ProjectPhase?      @relation(fields: [phaseId], references: [id])
+  assignee     Worker?            @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  parentTask   Task?              @relation("SubTasks", fields: [parentTaskId], references: [id])
+  subTasks     Task[]             @relation("SubTasks")
+  checklists   TaskChecklist[]
+  comments     TaskComment[]
+  timeLogs     TimeLog[]
+  dependsOn    TaskDependency[]   @relation("DependentTask")
+  dependedBy   TaskDependency[]   @relation("DependsOnTask")
+  allocations  ResourceAllocation[]
+
+  @@map("tasks")
+}
+
+// MODEL 5: TaskChecklist
+model TaskChecklist {
+  id        String    @id @default(cuid())
+  taskId    String
+  title     String
+  isDone    Boolean   @default(false)
+  order     Int       @default(0)
+  doneAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_checklists")
+}
+
+// MODEL 6: TaskComment
+model TaskComment {
+  id          String    @id @default(cuid())
+  taskId      String
+  userId      String
+  content     String
+  attachments String[]  @default([])
+  isEdited    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_comments")
+}
+
+// MODEL 7: TimeLog — تتبع الوقت
+model TimeLog {
+  id        String    @id @default(cuid())
+  taskId    String
+  workerId  String?
+  hours     Float
+  date      DateTime
+  note      String?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("time_logs")
+}
+
+// MODEL 8: TaskDependency
+model TaskDependency {
+  id          String         @id @default(cuid())
+  taskId      String
+  dependsOnId String
+  type        DependencyType @default(FINISH_TO_START)
+  lagDays     Int            @default(0)
+
+  // Relations
+  task      Task @relation("DependentTask", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn Task @relation("DependsOnTask", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@map("task_dependencies")
+}
+
+// MODEL 9: ResourceAllocation
+model ResourceAllocation {
+  id            String       @id @default(cuid())
+  projectId     String
+  taskId        String?
+  resourceType  ResourceType
+  workerId      String?
+  equipmentId   String?
+  allocationPct Float        @default(100)
+  hoursPerDay   Float?
+  startDate     DateTime?
+  endDate       DateTime?
+  notes         String?
+  createdAt     DateTime     @default(now())
+
+  // Relations
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task      Task?     @relation(fields: [taskId], references: [id])
+  worker    Worker?   @relation(fields: [workerId], references: [id])
+  equipment Equipment? @relation(fields: [equipmentId], references: [id])
+
+  @@map("resource_allocations")
+}
+
+// MODEL 10: ProjectMilestone
+model ProjectMilestone {
+  id               String    @id @default(cuid())
+  projectId        String
+  title            String
+  description      String?
+  targetDate       DateTime
+  isAchieved       Boolean   @default(false)
+  achievedAt       DateTime?
+  color            String    @default("#eab308")
+  notifyDaysBefore Int       @default(3)
+  createdAt        DateTime  @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_milestones")
+}
+
+// MODEL 11: Risk
+model Risk {
+  id          String     @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  category    String
+  probability Int
+  impact      Int
+  riskScore   Int
+  level       RiskLevel
+  status      RiskStatus @default(OPEN)
+  mitigation  String?
+  owner       String?
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("risks")
+}
+
+// MODEL 12: Decision
+model Decision {
+  id          String    @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  madeBy      String
+  madeAt      DateTime
+  rationale   String?
+  impact      String?
+  attachments String[]  @default([])
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("decisions")
+}
+
+// MODEL 13: ProjectDocument
+model ProjectDocument {
+  id           String      @id @default(cuid())
+  projectId    String
+  uploadedById String
+  name         String
+  filePath     String
+  fileType     String
+  fileSize     Int
+  category     DocCategory @default(OTHER)
+  folder       String      @default("/")
+  description  String?
+  version      String      @default("1.0")
+  createdAt    DateTime    @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_documents")
+}
+
+// MODEL 14: ActivityLog
+model ActivityLog {
+  id         String    @id @default(cuid())
+  projectId  String?
+  taskId     String?
+  userId     String
+  action     String
+  entityType String
+  entityId   String?
+  oldValue   String?
+  newValue   String?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@map("activity_logs")
+}
